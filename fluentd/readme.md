@@ -1,19 +1,23 @@
 # Run elasticsearch
-docker run --name quizzical_galileo -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.12.0
+docker run --name elasticsearch -p 9200:9200 -p 9300:9300 -d -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.12.0
 
 # Run Kibana
-docker run --link quizzical_galileo:elasticsearch -p 5601:5601 docker.elastic.co/kibana/kibana:7.12.0
+docker run --link elasticsearch:elasticsearch -d -p 5601:5601 docker.elastic.co/kibana/kibana:7.12.0
 
 # Verify
-curl -X GET "localhost:9200/_cat/nodes?v=true&pretty"
+curl -v "localhost:9200/_cat/nodes?v=true&pretty"
 
 # Install Fluentd
 
 Kubectl apply -f fluentd/
 
 # Install Custom Fluentd
-docker run -itd --rm -p 24224:24224 -p 5140:5140 --name custom-docker-fluent-logger -v $(pwd)/log:/fluentd/log custom-fluentd:latest
+docker run -d -p 24224:24224 -p 5140:5140 --name custom-docker-fluent-logger -v $(pwd)/log:/fluentd/log custom-fluentd:latest
 
+# Verify 
+docker run --rm --log-driver=fluentd ubuntu /bin/echo 'JG Hello world'
+
+---
 docker run -it -p 24224:24224 -v $(pwd)/custom-fluentd/conf/test.conf:/fluentd/etc/test.conf -e FLUENTD_CONF=test.conf fluent/fluentd:latest
 
 docker run --log-driver=fluentd -it ubuntu:latest bash
